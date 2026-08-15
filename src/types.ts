@@ -1,0 +1,73 @@
+/** JSON value accepted across the Host/Browser boundary. */
+export type JsonValue =
+  | null
+  | boolean
+  | number
+  | string
+  | JsonValue[]
+  | { [key: string]: JsonValue }
+
+/** Child-process MCP server configuration. */
+export interface StdioServerConfig {
+  transport: 'stdio'
+  serverName: string
+  command: string
+  args?: string[]
+  cwd?: string
+  env?: Record<string, string>
+}
+
+/** Streamable HTTP MCP server configuration. */
+export interface HttpServerConfig {
+  transport: 'streamable-http'
+  serverName: string
+  url: string
+  headers?: Record<string, string>
+}
+
+/** One MCP server owned by this plugin. */
+export type ServerConfig = StdioServerConfig | HttpServerConfig
+
+/** Cordis plugin configuration. */
+export interface Config {
+  servers?: ServerConfig[]
+  toolCallTimeoutMs?: number
+  maxBodyBytes?: number
+  maxResultMetaBytes?: number
+}
+
+/** Canonical MCP result retained for the View but rendered as text for the model. */
+export interface McpAppResult {
+  content: JsonValue[]
+  structuredContent?: JsonValue
+  _meta?: JsonValue
+}
+
+/** Durable UI-only payload attached to a settled Harness tool result. */
+export interface McpAppPresentationMetaV1 {
+  kind: 'dsh/mcp-app'
+  version: 1
+  viewId: string
+  publicToolName: string
+  resourceUri: string
+  result: McpAppResult
+}
+
+/** Browser-safe descriptor for one model-visible tool with an MCP App View. */
+export interface McpAppCatalogItem {
+  publicToolName: string
+  resourceUri: string
+  sandboxOrigin: string
+  viewId: string
+}
+
+/** Validated UI resource returned to the trusted Browser plugin. */
+export interface McpAppView {
+  html: string
+  csp?: {
+    connectDomains?: string[]
+    resourceDomains?: string[]
+    frameDomains?: string[]
+    baseUriDomains?: string[]
+  }
+}

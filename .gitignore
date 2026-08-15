@@ -1,0 +1,5 @@
+lib/
+demo/dist/
+node_modules/
+.tmp/
+*.tgz

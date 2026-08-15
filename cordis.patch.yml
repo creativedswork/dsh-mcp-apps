@@ -1,0 +1,3 @@
+- insert:
+    - id: mcp-apps
+      name: '@deepseek-ai/dsh-mcp-apps'

@@ -1,0 +1,9 @@
+- id: mcp-apps
+  config:
+    servers:
+      - serverName: counter
+        transport: stdio
+        command: node
+        args:
+          - demo/dist/server.js
+        cwd: !!js process.cwd()
