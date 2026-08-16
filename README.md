@@ -1,5 +1,7 @@
 # DSH MCP Apps
 
+English | [简体中文](README.zh-CN.md)
+
 [![CI](https://github.com/creativedswork/dsh-mcp-apps/actions/workflows/ci.yml/badge.svg)](https://github.com/creativedswork/dsh-mcp-apps/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/@deepseek-ai/dsh-mcp-apps.svg)](https://www.npmjs.com/package/@deepseek-ai/dsh-mcp-apps)
 [![GitHub release](https://img.shields.io/github/v/release/creativedswork/dsh-mcp-apps)](https://github.com/creativedswork/dsh-mcp-apps/releases)
@@ -122,6 +124,6 @@ dsh --profile web --dump-config
 
 ## Publishing
 
-`prepack` runs type checking, the production build, and package tests. The npm tarball contains the Host entry, Browser bundle, declarations, bundle patch, license, and README; development Demo files are excluded.
+`prepack` runs type checking, the production build, and package tests. The npm tarball contains the Host entry, Browser bundle, declarations, bundle patch, license, and both README languages; development Demo files are excluded.
 
 Publishing is manual through the [Publish workflow](https://github.com/creativedswork/dsh-mcp-apps/actions/workflows/publish.yml). The `npm` environment must provide an `NPM_TOKEN` with permission for the `@deepseek-ai` scope. The workflow publishes with provenance and creates `v0.1.0` plus the GitHub Release only after npm succeeds.
