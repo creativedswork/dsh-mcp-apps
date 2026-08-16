@@ -7,7 +7,11 @@ import type {
   CallToolResult,
   ReadResourceResult,
 } from '@modelcontextprotocol/sdk/types.js'
-import type { ClientContext, ToolResultNode } from '@deepseek-ai/dsh-client-runtime/client'
+import type {
+  ClientContext,
+  ISessions,
+  ToolResultNode,
+} from '@deepseek-ai/dsh-client-runtime/client'
 import type { ToolCallViewProps } from '@deepseek-ai/dsh-client-ui-tool/client'
 import type {
   McpAppCatalogItem,
@@ -20,12 +24,23 @@ const CATALOG_REFRESH_MS = 5_000
 const READY_TIMEOUT_MS = 10_000
 const MIN_HEIGHT = 120
 const MAX_HEIGHT = 800
+const MAX_MESSAGE_CHARS = 16_384
+const MAX_DOWNLOAD_BYTES = 4 * 1024 * 1024
+
+type AppMessageParams = Parameters<NonNullable<AppBridge['onmessage']>>[0]
+type AppMessageResult = Awaited<ReturnType<NonNullable<AppBridge['onmessage']>>>
+type AppDownloadParams = Parameters<NonNullable<AppBridge['ondownloadfile']>>[0]
+type AppDownloadResult = Awaited<ReturnType<NonNullable<AppBridge['ondownloadfile']>>>
+
+interface McpAppRowInjected {
+  sendMessage: (params: AppMessageParams) => Promise<AppMessageResult>
+}
 
 /** Browser Cordis plugin name used by client diagnostics. */
 export const name = 'mcp-apps-client'
 
 /** Required Browser service. */
-export const inject = ['slots']
+export const inject = ['slots', 'sessions']
 
 async function api<T>(path: string, body?: Record<string, unknown>): Promise<T> {
   const response = await fetch(`${API_PREFIX}/${path}`, body === undefined
@@ -111,13 +126,52 @@ function argsOf(block: ToolResultNode): Record<string, unknown> {
   }
 }
 
+function textPrompt(params: AppMessageParams): Array<{ type: 'text'; text: string }> | undefined {
+  if (params.role !== 'user' || params.content.length === 0) return undefined
+  let chars = 0
+  const content: Array<{ type: 'text'; text: string }> = []
+  for (const block of params.content) {
+    if (block.type !== 'text') return undefined
+    chars += block.text.length
+    if (chars > MAX_MESSAGE_CHARS) return undefined
+    content.push({ type: 'text', text: block.text })
+  }
+  return content.some(block => block.text.trim() !== '') ? content : undefined
+}
+
+function downloadEmbedded(params: AppDownloadParams): AppDownloadResult {
+  if (params.contents.length !== 1) return { isError: true }
+  const content = params.contents[0]
+  if (content?.type !== 'resource' || !('text' in content.resource)) return { isError: true }
+  const resource = content.resource
+  const uri = new URL(resource.uri)
+  const filename = decodeURIComponent(uri.pathname.split('/').pop() ?? '')
+  if (uri.protocol !== 'file:'
+    || resource.mimeType !== 'application/json'
+    || !/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$/.test(filename)) {
+    return { isError: true }
+  }
+  const blob = new Blob([resource.text], { type: resource.mimeType })
+  if (blob.size > MAX_DOWNLOAD_BYTES) return { isError: true }
+  const href = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = href
+  anchor.download = filename
+  anchor.click()
+  window.setTimeout(() => URL.revokeObjectURL(href), 0)
+  return {}
+}
+
 function McpAppRow({
   block,
   descriptor,
-}: ToolCallViewProps & { descriptor: McpAppCatalogItem }) {
+  sendMessage,
+}: ToolCallViewProps & McpAppRowInjected & { descriptor: McpAppCatalogItem }) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
+  const sendMessageRef = useRef(sendMessage)
   const [error, setError] = useState<string>()
   const [ready, setReady] = useState(false)
+  sendMessageRef.current = sendMessage
 
   const settled: ToolResultNode | undefined = 'kind' in block ? block : undefined
   const meta = presentationMeta(settled?.meta)
@@ -144,10 +198,16 @@ function McpAppRow({
       bridge = new AppBridge(
         null,
         { name: 'DeepSeek Harness MCP Apps', version: '0.1.0' },
-        { serverTools: {}, serverResources: {} },
+        {
+          serverTools: {},
+          serverResources: {},
+          downloadFile: {},
+          message: { text: {} },
+        },
         {
           hostContext: {
             theme: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
+            locale: navigator.language,
             platform: 'web',
             displayMode: 'inline',
             availableDisplayModes: ['inline'],
@@ -173,6 +233,14 @@ function McpAppRow({
         extra.signal.throwIfAborted()
         return result
       })
+      bridge.onmessage = (params, extra) => {
+        extra.signal.throwIfAborted()
+        return sendMessageRef.current(params)
+      }
+      bridge.ondownloadfile = (params, extra) => {
+        extra.signal.throwIfAborted()
+        return downloadEmbedded(params)
+      }
       bridge.onsizechange = params => {
         if (typeof params.height !== 'number' || !Number.isFinite(params.height)) return
         iframe.style.height = `${String(Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, Math.ceil(params.height))))}px`
@@ -248,6 +316,7 @@ function descriptorKey(item: McpAppCatalogItem): string {
 
 /** Register current MCP App tools into the dynamic keyed Tool view slot. */
 export function apply(ctx: ClientContext): void {
+  const sessions = ctx.sessions as unknown as ISessions
   ctx.slots.inject('tool.call.toolview', () => {
     let stopped = false
     const registered = new Map<string, { key: string; dispose: () => void }>()
@@ -265,8 +334,22 @@ export function apply(ctx: ClientContext): void {
       for (const [name, item] of next) {
         if (registered.has(name)) continue
         const dispose = ctx.slots.register(
-          { name: 'tool.call.toolview', key: name },
-          (props: ToolCallViewProps) => <McpAppRow {...props} descriptor={item} />,
+          {
+            name: 'tool.call.toolview',
+            key: name,
+            inject: sessionId => ({
+              sendMessage: async (params: AppMessageParams): Promise<AppMessageResult> => {
+                const content = textPrompt(params)
+                const session = sessions.binding(sessionId)?.session
+                if (content === undefined || session === undefined) return { isError: true }
+                const result = await session.prompt(content, 'queue')
+                return result.ok ? {} : { isError: true }
+              },
+            }),
+          },
+          (props: ToolCallViewProps & McpAppRowInjected) => (
+            <McpAppRow {...props} descriptor={item} />
+          ),
         )
         registered.set(name, { key: descriptorKey(item), dispose })
       }

@@ -2,6 +2,13 @@
   "name": "@deepseek-ai/dsh-mcp-apps",
   "version": "0.1.0",
   "description": "Cordis-hosted MCP Apps support for DeepSeek Harness",
+  "keywords": [
+    "deepseek",
+    "mcp",
+    "mcp-apps",
+    "cordis",
+    "agent"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",
