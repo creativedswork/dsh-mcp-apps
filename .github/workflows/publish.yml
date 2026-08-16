@@ -46,7 +46,7 @@ jobs:
           path: artifacts/*.tgz
           if-no-files-found: error
       - name: Publish to npm
-        run: npm publish artifacts/*.tgz --access public --provenance
+        run: npm publish ./artifacts/*.tgz --access public --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Create GitHub Release
