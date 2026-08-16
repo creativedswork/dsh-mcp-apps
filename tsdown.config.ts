@@ -1,6 +1,6 @@
 import { defineConfig } from 'tsdown'
 
-const packageName = '@deepseek-ai/dsh-mcp-apps'
+const packageName = '@creative-dswork/dsh-mcp-apps'
 
 export default defineConfig([
   {

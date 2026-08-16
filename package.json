@@ -1,5 +1,5 @@
 {
-  "name": "@deepseek-ai/dsh-mcp-apps",
+  "name": "@creative-dswork/dsh-mcp-apps",
   "version": "0.1.0",
   "description": "Cordis-hosted MCP Apps support for DeepSeek Harness",
   "keywords": [
@@ -47,7 +47,8 @@
     "LICENSE"
   ],
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   },
   "dsh": {
     "bundle": {

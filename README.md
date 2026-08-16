@@ -3,9 +3,9 @@
 English | [简体中文](README.zh-CN.md)
 
 [![CI](https://github.com/creativedswork/dsh-mcp-apps/actions/workflows/ci.yml/badge.svg)](https://github.com/creativedswork/dsh-mcp-apps/actions/workflows/ci.yml)
-[![npm](https://img.shields.io/npm/v/@deepseek-ai/dsh-mcp-apps.svg)](https://www.npmjs.com/package/@deepseek-ai/dsh-mcp-apps)
+[![npm](https://img.shields.io/npm/v/@creative-dswork/dsh-mcp-apps.svg)](https://www.npmjs.com/package/@creative-dswork/dsh-mcp-apps)
 [![GitHub release](https://img.shields.io/github/v/release/creativedswork/dsh-mcp-apps)](https://github.com/creativedswork/dsh-mcp-apps/releases)
-[![license](https://img.shields.io/npm/l/@deepseek-ai/dsh-mcp-apps.svg)](LICENSE)
+[![license](https://img.shields.io/npm/l/@creative-dswork/dsh-mcp-apps.svg)](LICENSE)
 
 Cordis plugin bundle for hosting stable-spec MCP Apps in the DeepSeek Harness Web UI. One npm package provides the Host plugin, Browser bundle, and `dsh.bundle` patch needed to activate both.
 
@@ -20,7 +20,7 @@ The 34-second flow uses [`threejs-editor-mcp`](https://github.com/creativedswork
 Install the package into the Web profile:
 
 ```sh
-dsh plugin --profile web add @deepseek-ai/dsh-mcp-apps
+dsh plugin --profile web add @creative-dswork/dsh-mcp-apps
 ```
 
 The bundle is activated automatically. Configure its `mcp-apps` row in `$DSH_HOME/profiles/web/cordis.patch.yml`:
@@ -126,4 +126,4 @@ dsh --profile web --dump-config
 
 `prepack` runs type checking, the production build, and package tests. The npm tarball contains the Host entry, Browser bundle, declarations, bundle patch, license, and both README languages; development Demo files are excluded.
 
-Publishing is manual through the [Publish workflow](https://github.com/creativedswork/dsh-mcp-apps/actions/workflows/publish.yml). The `npm` environment must provide an `NPM_TOKEN` with permission for the `@deepseek-ai` scope. The workflow publishes with provenance and creates `v0.1.0` plus the GitHub Release only after npm succeeds.
+Publishing is manual through the [Publish workflow](https://github.com/creativedswork/dsh-mcp-apps/actions/workflows/publish.yml). The `npm` environment must provide an `NPM_TOKEN` with permission for the `@creative-dswork` scope. The workflow publishes with provenance and creates `v0.1.0` plus the GitHub Release only after npm succeeds.

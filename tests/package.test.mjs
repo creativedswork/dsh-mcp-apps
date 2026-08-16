@@ -8,7 +8,9 @@ const manifest = JSON.parse(await readFile(new URL('../package.json', import.met
 const plugin = await import('../lib/index.js')
 
 test('publishes one installable DSH bundle', async () => {
+  assert.equal(manifest.name, '@creative-dswork/dsh-mcp-apps')
   assert.equal(manifest.publishConfig.access, 'public')
+  assert.equal(manifest.publishConfig.registry, 'https://registry.npmjs.org/')
   assert.equal(manifest.dsh.bundle.patch, './cordis.patch.yml')
   assert.equal(manifest.dsh.client.platform, 'web')
   assert.equal(manifest.exports['./client'].default, './lib/client.js')
@@ -17,7 +19,7 @@ test('publishes one installable DSH bundle', async () => {
 
   const client = await readFile(new URL('../lib/client.js', import.meta.url), 'utf8')
   assert.match(client, /window\.__ModuleLoader__\.load/)
-  assert.match(client, /@deepseek-ai\/dsh-mcp-apps/)
+  assert.match(client, /@creative-dswork\/dsh-mcp-apps/)
 })
 
 test('rejects CSP injection and normalizes safe origins', () => {
