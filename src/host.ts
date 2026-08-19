@@ -39,6 +39,7 @@ const SERVER_NAME_PATTERN = /^[A-Za-z0-9_-]{1,32}$/
 const MAX_PUBLIC_NAME_LENGTH = 64
 const INVALID_NAME_CHARS = /[^A-Za-z0-9_-]/g
 const HASH_LENGTH = 12
+const DSH_WORKSPACE_META_KEY = 'ai.deepseek.dsh/workspace'
 
 interface ResolvedConfig {
   servers: ServerConfig[]
@@ -262,10 +263,14 @@ class ServerState {
 
   private executor(rawName: string): ToolDefinition['execute'] {
     return async (args: unknown, exec: ToolExecution) => {
+      const cwd = this.config.transport === 'stdio' && this.config.forwardWorkspace === true
+        ? exec.agent?.session.header.cwd
+        : undefined
       const result = await this.call(
         rawName,
         typeof args === 'object' && args !== null ? args as Record<string, unknown> : {},
         exec.signal,
+        cwd === undefined ? undefined : { [DSH_WORKSPACE_META_KEY]: { cwd } },
       )
       const value = resultValue(result)
       if (result.isError === true) throw new Error(resultText(value, rawName))
@@ -328,9 +333,21 @@ class ServerState {
     }
   }
 
-  async call(rawName: string, args: Record<string, unknown>, signal?: AbortSignal): Promise<CallToolResult> {
+  async call(
+    rawName: string,
+    args: Record<string, unknown>,
+    signal?: AbortSignal,
+    meta?: Record<string, unknown>,
+  ): Promise<CallToolResult> {
     return this.client.request(
-      { method: 'tools/call', params: { name: rawName, arguments: args } },
+      {
+        method: 'tools/call',
+        params: {
+          name: rawName,
+          arguments: args,
+          ...meta === undefined ? {} : { _meta: meta },
+        },
+      },
       CallToolResultSchema,
       { signal, timeout: this.resolved.toolCallTimeoutMs },
     )

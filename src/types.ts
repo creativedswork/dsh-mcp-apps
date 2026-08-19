@@ -15,6 +15,7 @@ export interface StdioServerConfig {
   args?: string[]
   cwd?: string
   env?: Record<string, string>
+  forwardWorkspace?: boolean
 }
 
 /** Streamable HTTP MCP server configuration. */

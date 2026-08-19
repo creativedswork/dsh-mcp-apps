@@ -73,7 +73,7 @@ export function buildCspHeader(csp: Csp | undefined): string {
     `media-src 'self' data: blob: ${resources}`.trim(),
     `connect-src 'self' ${connects}`.trim(),
     `worker-src 'self' blob: ${resources}`.trim(),
-    frames === undefined || frames === '' ? "frame-src 'none'" : `frame-src ${frames}`,
+    `frame-src 'self'${frames === undefined || frames === '' ? '' : ` ${frames}`}`,
     bases === undefined || bases === '' ? "base-uri 'none'" : `base-uri ${bases}`,
     "object-src 'none'",
   ].join('; ')

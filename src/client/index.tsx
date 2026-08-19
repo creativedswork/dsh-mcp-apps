@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   AppBridge,
   PostMessageTransport,
@@ -18,6 +18,12 @@ import type {
   McpAppPresentationMetaV1,
   McpAppView,
 } from '../types.js'
+import { ActiveAppAction } from './active-app-action.js'
+import {
+  appRegistry,
+  type AppInstanceController,
+  type AppSurface,
+} from './app-registry.js'
 
 const API_PREFIX = '/api/mcp-apps'
 const CATALOG_REFRESH_MS = 5_000
@@ -26,11 +32,16 @@ const MIN_HEIGHT = 120
 const MAX_HEIGHT = 800
 const MAX_MESSAGE_CHARS = 16_384
 const MAX_DOWNLOAD_BYTES = 4 * 1024 * 1024
+const FULLSCREEN_CHROME_HEIGHT = 44
 
 type AppMessageParams = Parameters<NonNullable<AppBridge['onmessage']>>[0]
 type AppMessageResult = Awaited<ReturnType<NonNullable<AppBridge['onmessage']>>>
 type AppDownloadParams = Parameters<NonNullable<AppBridge['ondownloadfile']>>[0]
 type AppDownloadResult = Awaited<ReturnType<NonNullable<AppBridge['ondownloadfile']>>>
+type AppHostContext = NonNullable<
+  NonNullable<ConstructorParameters<typeof AppBridge>[3]>['hostContext']
+>
+type DisplayMode = 'inline' | 'fullscreen'
 
 interface McpAppRowInjected {
   sendMessage: (params: AppMessageParams) => Promise<AppMessageResult>
@@ -162,25 +173,149 @@ function downloadEmbedded(params: AppDownloadParams): AppDownloadResult {
   return {}
 }
 
+function appHostContext(
+  iframe: HTMLIFrameElement,
+  displayMode: DisplayMode,
+  inlineContainer?: HTMLElement | null,
+): AppHostContext {
+  const bounds = iframe.getBoundingClientRect()
+  const inlineBounds = inlineContainer?.getBoundingClientRect() ?? bounds
+  return {
+    theme: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
+    locale: navigator.language,
+    platform: 'web',
+    displayMode,
+    availableDisplayModes: ['inline', 'fullscreen'],
+    containerDimensions: displayMode === 'fullscreen'
+      ? {
+          width: Math.max(1, Math.round(window.innerWidth)),
+          height: Math.max(1, Math.round(window.innerHeight - FULLSCREEN_CHROME_HEIGHT)),
+        }
+      : {
+          width: Math.max(1, Math.round(inlineBounds.width)),
+          maxHeight: MAX_HEIGHT,
+        },
+  }
+}
+
 function McpAppRow({
   block,
+  callId,
   descriptor,
   sendMessage,
+  sessionId,
 }: ToolCallViewProps & McpAppRowInjected & { descriptor: McpAppCatalogItem }) {
+  const rootRef = useRef<HTMLDivElement>(null)
   const iframeRef = useRef<HTMLIFrameElement>(null)
+  const bridgeRef = useRef<AppBridge>()
+  const displayModeRef = useRef<DisplayMode>('inline')
+  const inlineHeightRef = useRef(320)
+  const requestSurfaceRef = useRef<(surface: AppSurface) => void>(() => {})
+  const locateRef = useRef<() => void>(() => {})
+  const locateFrameRef = useRef<number>()
+  const locateTimerRef = useRef<number>()
+  const scrollPositionRef = useRef<{ element: HTMLElement; top: number }>()
+  const scrollRestoreFrameRef = useRef<number>()
   const sendMessageRef = useRef(sendMessage)
   const [error, setError] = useState<string>()
   const [ready, setReady] = useState(false)
+  const [displayMode, setDisplayMode] = useState<DisplayMode>('inline')
+  const [frameHeight, setFrameHeight] = useState(320)
+  const [located, setLocated] = useState(false)
   sendMessageRef.current = sendMessage
 
   const settled: ToolResultNode | undefined = 'kind' in block ? block : undefined
   const meta = presentationMeta(settled?.meta)
+  const sessionKey = String(sessionId)
+  const controller = useMemo<AppInstanceController>(() => ({
+    sessionId: sessionKey,
+    callId,
+    publicToolName: descriptor.publicToolName,
+    ready: false,
+    surface: 'inline',
+    requestSurface: surface => { requestSurfaceRef.current(surface) },
+    locate: () => { locateRef.current() },
+  }), [callId, descriptor.publicToolName, sessionKey])
+
+  requestSurfaceRef.current = surface => {
+    const iframe = iframeRef.current
+    const previousSurface = displayModeRef.current
+    if (surface === 'fullscreen' && previousSurface === 'inline') {
+      const scrollport = rootRef.current?.closest<HTMLElement>('[data-conversation-scroll]')
+      if (scrollport !== undefined && scrollport !== null) {
+        scrollPositionRef.current = { element: scrollport, top: scrollport.scrollTop }
+      }
+    }
+    const scrollPosition = scrollPositionRef.current
+    displayModeRef.current = surface
+    controller.surface = surface
+    if (iframe !== null) {
+      iframe.style.height = surface === 'fullscreen'
+        ? '100%'
+        : `${String(inlineHeightRef.current)}px`
+    }
+    setDisplayMode(surface)
+    if (iframe !== null) {
+      bridgeRef.current?.setHostContext(appHostContext(iframe, surface, rootRef.current))
+    }
+    if (scrollPosition !== undefined && previousSurface !== surface) {
+      if (scrollRestoreFrameRef.current !== undefined) {
+        window.cancelAnimationFrame(scrollRestoreFrameRef.current)
+      }
+      scrollRestoreFrameRef.current = window.requestAnimationFrame(() => {
+        if (scrollPosition.element.isConnected) {
+          scrollPosition.element.scrollTop = scrollPosition.top
+        }
+      })
+      if (surface === 'inline') scrollPositionRef.current = undefined
+    }
+  }
+  locateRef.current = () => {
+    requestSurfaceRef.current('inline')
+    locateFrameRef.current = window.requestAnimationFrame(() => {
+      const target = rootRef.current?.closest<HTMLElement>('[data-chat-anchor-key]')
+        ?? rootRef.current
+      const scrollport = target?.closest<HTMLElement>('[data-conversation-scroll]')
+      if (target !== null && target !== undefined && scrollport !== null && scrollport !== undefined) {
+        scrollport.scrollTo({
+          behavior: 'auto',
+          top: scrollport.scrollTop
+            + target.getBoundingClientRect().top
+            - scrollport.getBoundingClientRect().top,
+        })
+      } else {
+        target?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }
+      setLocated(true)
+      if (locateTimerRef.current !== undefined) window.clearTimeout(locateTimerRef.current)
+      locateTimerRef.current = window.setTimeout(() => { setLocated(false) }, 1_800)
+    })
+  }
+
+  useEffect(() => {
+    if (settled === undefined || meta === undefined) return
+    const dispose = appRegistry.register(controller)
+    return () => {
+      controller.ready = false
+      dispose()
+      if (locateFrameRef.current !== undefined) window.cancelAnimationFrame(locateFrameRef.current)
+      if (locateTimerRef.current !== undefined) window.clearTimeout(locateTimerRef.current)
+      if (scrollRestoreFrameRef.current !== undefined) {
+        window.cancelAnimationFrame(scrollRestoreFrameRef.current)
+      }
+    }
+  }, [controller, meta, settled])
 
   useEffect(() => {
     const iframe = iframeRef.current
     if (iframe === null || settled === undefined || meta === undefined) return
     let disposed = false
     let bridge: AppBridge | undefined
+    controller.ready = false
+    appRegistry.changed(controller)
+    requestSurfaceRef.current('inline')
+    setError(undefined)
+    setReady(false)
 
     const run = async (): Promise<void> => {
       const view = await api<McpAppView>('view', { viewId: meta.viewId })
@@ -205,19 +340,10 @@ function McpAppRow({
           message: { text: {} },
         },
         {
-          hostContext: {
-            theme: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
-            locale: navigator.language,
-            platform: 'web',
-            displayMode: 'inline',
-            availableDisplayModes: ['inline'],
-            containerDimensions: {
-              width: Math.round(iframe.getBoundingClientRect().width),
-              maxHeight: MAX_HEIGHT,
-            },
-          },
+          hostContext: appHostContext(iframe, displayModeRef.current, rootRef.current),
         },
       )
+      bridgeRef.current = bridge
       bridge.oncalltool = (params, extra) => api<CallToolResult>('tool', {
         viewId: meta.viewId,
         name: params.name,
@@ -241,9 +367,19 @@ function McpAppRow({
         extra.signal.throwIfAborted()
         return downloadEmbedded(params)
       }
+      bridge.onrequestdisplaymode = async ({ mode }, extra) => {
+        extra.signal.throwIfAborted()
+        if (mode !== 'inline' && mode !== 'fullscreen') return { mode: displayModeRef.current }
+        return appRegistry.requestSurface(sessionKey, callId, mode)
+          ? { mode }
+          : { mode: displayModeRef.current }
+      }
       bridge.onsizechange = params => {
+        if (displayModeRef.current === 'fullscreen') return
         if (typeof params.height !== 'number' || !Number.isFinite(params.height)) return
-        iframe.style.height = `${String(Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, Math.ceil(params.height))))}px`
+        inlineHeightRef.current = Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, Math.ceil(params.height)))
+        setFrameHeight(inlineHeightRef.current)
+        iframe.style.height = `${String(inlineHeightRef.current)}px`
       }
       const initialized = timeout(new Promise<void>((resolve) => {
         if (bridge !== undefined) bridge.oninitialized = () => resolve()
@@ -258,14 +394,23 @@ function McpAppRow({
       if (disposed) return
       bridge.sendToolInput({ arguments: argsOf(settled) })
       bridge.sendToolResult(meta.result as CallToolResult)
+      controller.ready = true
+      appRegistry.changed(controller)
+      appRegistry.activate(sessionKey, callId)
       setReady(true)
     }
 
     void run().catch(cause => {
-      if (!disposed) setError(cause instanceof Error ? cause.message : String(cause))
+      if (!disposed) {
+        controller.ready = false
+        appRegistry.changed(controller)
+        setError(cause instanceof Error ? cause.message : String(cause))
+      }
     })
     return () => {
       disposed = true
+      controller.ready = false
+      appRegistry.changed(controller)
       if (bridge !== undefined) {
         void timeout(bridge.teardownResource({}), 1_000, 'MCP App teardown timed out')
           .catch(() => {})
@@ -273,9 +418,10 @@ function McpAppRow({
             void (bridge as unknown as { close(): Promise<void> }).close()
           })
       }
+      if (bridgeRef.current === bridge) bridgeRef.current = undefined
       iframe.removeAttribute('src')
     }
-  }, [descriptor.sandboxOrigin, meta, settled])
+  }, [callId, controller, descriptor.sandboxOrigin, meta, sessionKey, settled])
 
   if (settled === undefined) {
     return <div data-mcp-app-status="running">Running MCP App tool...</div>
@@ -292,20 +438,101 @@ function McpAppRow({
       </div>
     )
   }
+  const fullscreen = displayMode === 'fullscreen'
   return (
-    <div data-mcp-app-view style={{ width: '100%', minWidth: 0 }}>
-      {!ready && <div data-mcp-app-status="loading">Loading MCP App...</div>}
-      <iframe
-        ref={iframeRef}
-        title={`MCP App: ${descriptor.publicToolName}`}
+    <div
+      ref={rootRef}
+      data-mcp-app-view
+      data-display-mode={displayMode}
+      data-mcp-app-located={located || undefined}
+      onFocusCapture={() => { appRegistry.activate(sessionKey, callId) }}
+      onPointerDownCapture={() => { appRegistry.activate(sessionKey, callId) }}
+      style={{
+        position: 'relative',
+        width: '100%',
+        minWidth: 0,
+        height: fullscreen ? frameHeight : undefined,
+        outline: located ? '2px solid var(--dsw-alias-state-business-primary)' : undefined,
+        outlineOffset: located ? 4 : undefined,
+      }}
+    >
+      <div
+        data-mcp-app-surface
         style={{
-          display: ready ? 'block' : 'none',
+          position: fullscreen ? 'fixed' : 'relative',
           width: '100%',
-          height: 320,
-          border: 0,
-          background: 'transparent',
+          minWidth: 0,
+          ...(fullscreen
+            ? {
+                display: 'grid',
+                gridTemplateRows: `${String(FULLSCREEN_CHROME_HEIGHT)}px minmax(0, 1fr)`,
+                inset: 0,
+                zIndex: 2147483000,
+                height: '100vh',
+                background: '#0b0d10',
+              }
+            : {}),
         }}
-      />
+      >
+        {!ready && <div data-mcp-app-status="loading">Loading MCP App...</div>}
+        {fullscreen && (
+          <div
+            data-mcp-app-fullscreen-actions
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'flex-end',
+              gap: 6,
+              boxSizing: 'border-box',
+              padding: '6px 12px',
+              borderBottom: '1px solid var(--dsw-alias-border-l2)',
+              background: 'var(--dsw-alias-bg-base)',
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => { appRegistry.locate(sessionKey, callId) }}
+              style={{
+                padding: '6px 10px',
+                border: '1px solid var(--dsw-alias-border-l2)',
+                borderRadius: 6,
+                background: 'var(--dsw-alias-bg-base)',
+                color: 'var(--dsw-alias-label-primary)',
+                cursor: 'pointer',
+              }}
+            >
+              Locate in Chat
+            </button>
+            <button
+              type="button"
+              aria-label="Exit fullscreen"
+              title="Exit fullscreen"
+              onClick={() => { appRegistry.requestSurface(sessionKey, callId, 'inline') }}
+              style={{
+                width: 32,
+                border: '1px solid var(--dsw-alias-border-l2)',
+                borderRadius: 6,
+                background: 'var(--dsw-alias-bg-base)',
+                color: 'var(--dsw-alias-label-primary)',
+                cursor: 'pointer',
+              }}
+            >
+              X
+            </button>
+          </div>
+        )}
+        <iframe
+          ref={iframeRef}
+          title={`MCP App: ${descriptor.publicToolName}`}
+          style={{
+            display: ready ? 'block' : 'none',
+            width: '100%',
+            height: fullscreen ? '100%' : frameHeight,
+            border: 0,
+            background: 'transparent',
+          }}
+        />
+      </div>
     </div>
   )
 }
@@ -317,6 +544,16 @@ function descriptorKey(item: McpAppCatalogItem): string {
 /** Register current MCP App tools into the dynamic keyed Tool view slot. */
 export function apply(ctx: ClientContext): void {
   const sessions = ctx.sessions as unknown as ISessions
+  ctx.effect(() => () => { appRegistry.clear() }, 'mcp-apps: clear app registry')
+  ctx.slots.inject(
+    'conversation.session.header.actions',
+    () => ctx.slots.register({
+      name: 'conversation.session.header.actions',
+      id: 'mcp-apps-active',
+      order: 30,
+      label: 'MCP Apps',
+    }, ActiveAppAction),
+  )
   ctx.slots.inject('tool.call.toolview', () => {
     let stopped = false
     const registered = new Map<string, { key: string; dispose: () => void }>()

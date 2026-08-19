@@ -11,9 +11,11 @@ Cordis plugin bundle for hosting stable-spec MCP Apps in the DeepSeek Harness We
 
 The Host owns its MCP connections, exposes model-visible tools through Harness, keeps app-only tools out of the model registry, and serves untrusted Views through a different-origin Sandbox Proxy. No agent-loop change or external MCP proxy is required.
 
-<img width="900" height="900" alt="A user edits a Three.js Pong scene in an MCP App, saves it, and the Agent reads the saved operations" src="https://github.com/user-attachments/assets/d9ef0df0-e628-4734-8d61-b33b4c0f3933">
+<a href="https://youtu.be/N4spKNrK1gg">
+  <img width="900" alt="Watch the DSH Chat UI and Three.js Editor MCP App video demo" src="https://i.ytimg.com/vi/N4spKNrK1gg/maxresdefault.jpg">
+</a>
 
-The 34-second flow uses [`threejs-editor-mcp`](https://github.com/creativedswork/threejs-editor-mcp): the user changes the Canvas layout and camera, clicks **Save**, the App sends a standard `ui/message`, and the Agent calls `inspect_project` before responding to the saved operations.
+[Watch the video demo](https://youtu.be/N4spKNrK1gg) to see [`threejs-editor-mcp`](https://github.com/creativedswork/threejs-editor-mcp) running directly inside DSH Chat UI. The Editor stays reachable from the Session Header, can move between inline and fullscreen without recreating its iframe, and can return to its originating tool message with **Locate in Chat**.
 
 ## Install
 
@@ -34,9 +36,15 @@ The bundle is activated automatically. Configure its `mcp-apps` row in `$DSH_HOM
         command: node
         args: [/absolute/path/to/server.js]
         cwd: /absolute/path/to/server
+        forwardWorkspace: true
 ```
 
-`transport: streamable-http` accepts `url` and optional `headers` instead of `command`, `args`, `cwd`, and `env`. `serverName` must match `[A-Za-z0-9_-]{1,32}` and becomes part of the public tool name.
+`forwardWorkspace` is disabled by default. Enable it only for a trusted local
+stdio Server that needs the calling DSH Workspace. `transport:
+streamable-http` never receives Workspace metadata and accepts `url` and
+optional `headers` instead of `command`, `args`, `cwd`, and `env`.
+`serverName` must match `[A-Za-z0-9_-]{1,32}` and becomes part of the public
+tool name.
 
 Start Harness with:
 
@@ -73,8 +81,15 @@ For the full editor example, install and configure [`threejs-editor-mcp`](https:
 - Targets MCP Apps specification `2026-01-26` and advertises `text/html;profile=mcp-app`.
 - Supports stdio and Streamable HTTP MCP transports.
 - Applies `_meta.ui.visibility`; omitted visibility means model and app.
+- For trusted local stdio Servers with `forwardWorkspace: true`, adds the
+  calling Agent's immutable workspace `cwd` to model-originated `tools/call`
+  request metadata at `ai.deepseek.dsh/workspace`. It is never added to remote
+  HTTP or app-originated calls, model-visible tool arguments, or results.
 - Persists readable text for the model while retaining `structuredContent` and result `_meta` in bounded UI-only presentation metadata.
 - Uses the official `AppBridge` and `PostMessageTransport` for View lifecycle and app-originated tool/resource calls.
+- Keeps a Session-scoped Active App entry in the Header, with support for multiple MCP App instances.
+- Opens the active App fullscreen without recreating its iframe or `AppBridge`, preserving unsaved View state.
+- Returns to the originating tool message with `Locate in Chat`.
 - Mediates `ui/download-file` for one embedded JSON resource up to 4 MiB because Sandbox Views cannot download directly.
 - Enforces CSP by HTTP header on a separate loopback origin and validates `postMessage` source and origin.
 - Falls back to the ordinary text tool result when a View cannot load.
@@ -126,4 +141,4 @@ dsh --profile web --dump-config
 
 `prepack` runs type checking, the production build, and package tests. The npm tarball contains the Host entry, Browser bundle, declarations, bundle patch, license, and both README languages; development Demo files are excluded.
 
-Publishing is manual through the [Publish workflow](https://github.com/creativedswork/dsh-mcp-apps/actions/workflows/publish.yml). The `npm` environment must provide an `NPM_TOKEN` with permission for the `@creative-dswork` scope. The workflow publishes with provenance and creates `v0.1.0` plus the GitHub Release only after npm succeeds.
+Publishing is manual through the [Publish workflow](https://github.com/creativedswork/dsh-mcp-apps/actions/workflows/publish.yml). The `npm` environment must provide an `NPM_TOKEN` with permission for the `@creative-dswork` scope. The workflow publishes with provenance and creates `v0.2.0` plus the GitHub Release only after npm succeeds.

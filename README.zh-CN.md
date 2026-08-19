@@ -11,9 +11,11 @@
 
 Host 管理 MCP 连接，通过 Harness 注册模型可见工具，不把 app-only 工具暴露给模型，并通过不同源的 Sandbox Proxy 运行不受信任的 View。整个方案不需要修改 Agent Loop，也不需要外部 MCP 代理。
 
-<img width="900" height="900" alt="用户在 MCP App 中编辑 Three.js Pong 场景，保存后 Agent 读取操作记录" src="https://github.com/user-attachments/assets/d9ef0df0-e628-4734-8d61-b33b4c0f3933">
+<a href="https://youtu.be/N4spKNrK1gg">
+  <img width="900" alt="观看 DSH Chat UI 与 Three.js Editor MCP App 视频演示" src="https://i.ytimg.com/vi/N4spKNrK1gg/maxresdefault.jpg">
+</a>
 
-这段 34 秒的演示使用了 [`threejs-editor-mcp`](https://github.com/creativedswork/threejs-editor-mcp)：用户调整 Canvas 布局和相机视角，点击 **Save**；App 随后发送标准 `ui/message`，Agent 调用 `inspect_project` 读取保存的操作记录并作出回应。
+[观看视频演示](https://youtu.be/N4spKNrK1gg)，了解 [`threejs-editor-mcp`](https://github.com/creativedswork/threejs-editor-mcp) 如何直接运行在 DSH Chat UI 中。Editor 始终可以从 Session Header 返回；inline 与 fullscreen 切换不会重建 iframe，并可通过 **Locate in Chat** 返回产生该 App 的工具消息。
 
 ## 安装
 
@@ -34,9 +36,13 @@ dsh plugin --profile web add @creative-dswork/dsh-mcp-apps
         command: node
         args: [/absolute/path/to/server.js]
         cwd: /absolute/path/to/server
+        forwardWorkspace: true
 ```
 
-使用 `transport: streamable-http` 时，改为提供 `url` 和可选的 `headers`，不再填写 `command`、`args`、`cwd` 和 `env`。`serverName` 必须匹配 `[A-Za-z0-9_-]{1,32}`，它会成为公开工具名的一部分。
+`forwardWorkspace` 默认关闭，只应对需要当前 DSH Workspace 的可信本地 stdio
+Server 启用。`transport: streamable-http` 不会收到 Workspace metadata；此时改为
+提供 `url` 和可选的 `headers`，不再填写 `command`、`args`、`cwd` 和 `env`。
+`serverName` 必须匹配 `[A-Za-z0-9_-]{1,32}`，它会成为公开工具名的一部分。
 
 启动 Harness：
 
@@ -73,8 +79,15 @@ pnpm dlx @deepseek-ai/dsh@0.1.0-rc.6 web --patch "$PWD/demo/cordis.patch.yml"
 - 目标规范为 MCP Apps `2026-01-26`，View MIME 类型为 `text/html;profile=mcp-app`。
 - 支持 stdio 和 Streamable HTTP 两种 MCP transport。
 - 识别 `_meta.ui.visibility`；省略该字段时，工具同时对模型和 App 可见。
+- 对设置 `forwardWorkspace: true` 的可信本地 stdio Server，将调用 Agent
+  不可变的 Workspace `cwd` 写入模型发起的 `tools/call` request metadata
+  `ai.deepseek.dsh/workspace`。远程 HTTP、App 发起的调用以及模型可见的 tool
+  参数和结果都不包含该值。
 - 将可读文本交给模型，同时把 `structuredContent` 和结果 `_meta` 保存在受大小限制、仅 UI 可见的 presentation metadata 中。
 - 使用官方 `AppBridge` 和 `PostMessageTransport` 处理 View 生命周期，以及 App 发起的工具和资源调用。
+- 在 Session Header 中提供持续可见的 Active App 入口，并支持多个 MCP App Instance。
+- 打开 fullscreen 时不重建 iframe 或 `AppBridge`，保留 View 中尚未保存的状态。
+- 通过 `Locate in Chat` 返回产生该 App 的原始工具消息。
 - 代理 `ui/download-file`，允许下载一个最大 4 MiB 的内嵌 JSON 资源，因为 Sandbox View 无法直接下载文件。
 - 在独立 loopback origin 上通过 HTTP header 强制执行 CSP，并校验 `postMessage` 的 source 和 origin。
 - View 加载失败时回退到普通文本工具结果。
@@ -126,4 +139,4 @@ dsh --profile web --dump-config
 
 `prepack` 会执行类型检查、生产构建和包测试。npm tarball 包含 Host 入口、Browser bundle、类型声明、bundle patch、许可证和中英文 README，不包含开发 Demo 文件。
 
-发布通过 [Publish workflow](https://github.com/creativedswork/dsh-mcp-apps/actions/workflows/publish.yml) 手动触发。`npm` environment 必须提供有权发布 `@creative-dswork` scope 的 `NPM_TOKEN`。workflow 会携带 provenance 发布 npm 包；npm 发布成功后，再创建 `v0.1.0` tag 和 GitHub Release。
+发布通过 [Publish workflow](https://github.com/creativedswork/dsh-mcp-apps/actions/workflows/publish.yml) 手动触发。`npm` environment 必须提供有权发布 `@creative-dswork` scope 的 `NPM_TOKEN`。workflow 会携带 provenance 发布 npm 包；npm 发布成功后，再创建 `v0.2.0` tag 和 GitHub Release。

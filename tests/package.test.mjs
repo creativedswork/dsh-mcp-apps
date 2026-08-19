@@ -13,6 +13,7 @@ test('publishes one installable DSH bundle', async () => {
   assert.equal(manifest.publishConfig.registry, 'https://registry.npmjs.org/')
   assert.equal(manifest.dsh.bundle.patch, './cordis.patch.yml')
   assert.equal(manifest.dsh.client.platform, 'web')
+  assert.ok(manifest.dsh.client.inject.includes('@deepseek-ai/dsh-client-ui-conversation'))
   assert.equal(manifest.exports['./client'].default, './lib/client.js')
 
   assert.equal(plugin.MCP_APPS_SPEC_VERSION, '2026-01-26')
@@ -20,6 +21,13 @@ test('publishes one installable DSH bundle', async () => {
   const client = await readFile(new URL('../lib/client.js', import.meta.url), 'utf8')
   assert.match(client, /window\.__ModuleLoader__\.load/)
   assert.match(client, /@creative-dswork\/dsh-mcp-apps/)
+  assert.match(client, /onrequestdisplaymode/)
+  assert.match(client, /fullscreen/)
+  assert.match(client, /data-display-mode/)
+  assert.match(client, /conversation\.session\.header\.actions/)
+  assert.match(client, /mcp-apps-active/)
+  assert.match(client, /Locate in Chat/)
+  assert.match(client, /data-mcp-app-header-action/)
 })
 
 test('rejects CSP injection and normalizes safe origins', () => {
@@ -33,10 +41,73 @@ test('rejects CSP injection and normalizes safe origins', () => {
   })
   const header = plugin.buildCspHeader(csp)
   assert.match(header, /connect-src 'self' https:\/\/api\.example\.com wss:\/\/socket\.example\.com/)
+  assert.match(header, /frame-src 'self'/)
+  assert.doesNotMatch(header, /frame-src[^;]*https:\/\/attacker\.example/)
   assert.match(header, /object-src 'none'/)
+  assert.match(
+    plugin.buildCspHeader(plugin.normalizeCsp({
+      frameDomains: ['https://embed.example.com'],
+    })),
+    /frame-src 'self' https:\/\/embed\.example\.com/,
+  )
   assert.throws(() => plugin.normalizeCsp({ connectDomains: ["https://safe.test; script-src 'none'"] }))
   assert.throws(() => plugin.normalizeCsp({ resourceDomains: ['https://example.com/path'] }))
   assert.throws(() => plugin.normalizeCsp({ resourceDomains: ['https://user@example.com'] }))
+})
+
+test('passes the calling DSH workspace to model MCP tool requests', async () => {
+  const ctx = new Context()
+  const definitions = new Map()
+  ctx.provide('tools', {
+    register(definition) {
+      definitions.set(definition.name, definition)
+      return () => { definitions.delete(definition.name) }
+    },
+  })
+  ctx.provide('webServer', {
+    host: '127.0.0.1',
+    register() {
+      return () => {}
+    },
+  })
+
+  try {
+    await ctx.plugin(plugin, {
+      servers: [
+        {
+          transport: 'stdio',
+          serverName: 'context',
+          command: process.execPath,
+          args: [new URL('./fixtures/workspace-context-server.mjs', import.meta.url).pathname],
+          forwardWorkspace: true,
+        },
+        {
+          transport: 'stdio',
+          serverName: 'private',
+          command: process.execPath,
+          args: [new URL('./fixtures/workspace-context-server.mjs', import.meta.url).pathname],
+        },
+      ],
+    })
+    const definition = definitions.get(plugin.publicToolName('context', 'show_context'))
+    const signal = new AbortController().signal
+    const cwd = '/tmp/selected-threejs-game'
+    const contextual = await definition.execute({}, {
+      signal,
+      agent: { session: { header: { cwd } } },
+    })
+    assert.equal(contextual.structuredContent.cwd, cwd)
+    const agentless = await definition.execute({}, { signal })
+    assert.equal(agentless.structuredContent.cwd, null)
+    const privateDefinition = definitions.get(plugin.publicToolName('private', 'show_context'))
+    const privateResult = await privateDefinition.execute({}, {
+      signal,
+      agent: { session: { header: { cwd } } },
+    })
+    assert.equal(privateResult.structuredContent.cwd, null)
+  } finally {
+    await ctx.fiber.dispose()
+  }
 })
 
 test('hosts the counter MCP App and keeps app-only tools out of the model registry', async () => {
