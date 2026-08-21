@@ -61,7 +61,7 @@ function viewHtml(script: string): string {
 }
 
 function createServer(): McpServer {
-  const server = new McpServer({ name: 'DSH MCP Apps counter demo', version: '1.0.0' })
+  const server = new McpServer({ name: 'DSH Uni Editor counter demo', version: '1.0.0' })
 
   registerAppTool(server, 'show_counter', {
     title: 'Show counter',

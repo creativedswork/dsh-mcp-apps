@@ -332,7 +332,7 @@ function McpAppRow({
 
       bridge = new AppBridge(
         null,
-        { name: 'DeepSeek Harness MCP Apps', version: '0.1.0' },
+        { name: 'DSH Uni Editor', version: '0.3.0' },
         {
           serverTools: {},
           serverResources: {},

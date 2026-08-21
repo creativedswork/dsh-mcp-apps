@@ -1,6 +1,6 @@
 import { defineConfig } from 'tsdown'
 
-const packageName = '@creative-dswork/dsh-mcp-apps'
+const packageName = '@creative-dswork/dsh-uni-editor'
 
 export default defineConfig([
   {

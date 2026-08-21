@@ -8,7 +8,7 @@ const manifest = JSON.parse(await readFile(new URL('../package.json', import.met
 const plugin = await import('../lib/index.js')
 
 test('publishes one installable DSH bundle', async () => {
-  assert.equal(manifest.name, '@creative-dswork/dsh-mcp-apps')
+  assert.equal(manifest.name, '@creative-dswork/dsh-uni-editor')
   assert.equal(manifest.publishConfig.access, 'public')
   assert.equal(manifest.publishConfig.registry, 'https://registry.npmjs.org/')
   assert.equal(manifest.dsh.bundle.patch, './cordis.patch.yml')
@@ -20,7 +20,7 @@ test('publishes one installable DSH bundle', async () => {
 
   const client = await readFile(new URL('../lib/client.js', import.meta.url), 'utf8')
   assert.match(client, /window\.__ModuleLoader__\.load/)
-  assert.match(client, /@creative-dswork\/dsh-mcp-apps/)
+  assert.match(client, /@creative-dswork\/dsh-uni-editor/)
   assert.match(client, /onrequestdisplaymode/)
   assert.match(client, /fullscreen/)
   assert.match(client, /data-display-mode/)

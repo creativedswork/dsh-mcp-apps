@@ -1,13 +1,17 @@
-# DSH MCP Apps
+# DSH Uni Editor
 
 English | [简体中文](README.zh-CN.md)
 
-[![CI](https://github.com/creativedswork/dsh-mcp-apps/actions/workflows/ci.yml/badge.svg)](https://github.com/creativedswork/dsh-mcp-apps/actions/workflows/ci.yml)
-[![npm](https://img.shields.io/npm/v/@creative-dswork/dsh-mcp-apps.svg)](https://www.npmjs.com/package/@creative-dswork/dsh-mcp-apps)
-[![GitHub release](https://img.shields.io/github/v/release/creativedswork/dsh-mcp-apps)](https://github.com/creativedswork/dsh-mcp-apps/releases)
-[![license](https://img.shields.io/npm/l/@creative-dswork/dsh-mcp-apps.svg)](LICENSE)
+[![CI](https://github.com/creativedswork/dsh-uni-editor/actions/workflows/ci.yml/badge.svg)](https://github.com/creativedswork/dsh-uni-editor/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/@creative-dswork/dsh-uni-editor.svg)](https://www.npmjs.com/package/@creative-dswork/dsh-uni-editor)
+[![GitHub release](https://img.shields.io/github/v/release/creativedswork/dsh-uni-editor)](https://github.com/creativedswork/dsh-uni-editor/releases)
+[![license](https://img.shields.io/npm/l/@creative-dswork/dsh-uni-editor.svg)](LICENSE)
 
-Cordis plugin bundle for hosting stable-spec MCP Apps in the DeepSeek Harness Web UI. One npm package provides the Host plugin, Browser bundle, and `dsh.bundle` patch needed to activate both.
+**All Editors, one DSH Editor.**
+
+DSH Uni Editor brings existing Editors into DeepSeek Harness Agent Chat. Editors keep their own UI, data model, and domain tools; DSH provides one entry point, the current Session context, and a verifiable handoff between human edits and the Agent.
+
+The runtime is a Cordis plugin bundle powered by stable-spec MCP Apps. One npm package provides the Host plugin, Browser bundle, and `dsh.bundle` patch needed to activate both.
 
 The Host owns its MCP connections, exposes model-visible tools through Harness, keeps app-only tools out of the model registry, and serves untrusted Views through a different-origin Sandbox Proxy. No agent-loop change or external MCP proxy is required.
 
@@ -22,7 +26,7 @@ The Host owns its MCP connections, exposes model-visible tools through Harness, 
 Install the package into the Web profile:
 
 ```sh
-dsh plugin --profile web add @creative-dswork/dsh-mcp-apps
+dsh plugin --profile web add @creative-dswork/dsh-uni-editor
 ```
 
 The bundle is activated automatically. Configure its `mcp-apps` row in `$DSH_HOME/profiles/web/cordis.patch.yml`:
@@ -141,4 +145,6 @@ dsh --profile web --dump-config
 
 `prepack` runs type checking, the production build, and package tests. The npm tarball contains the Host entry, Browser bundle, declarations, bundle patch, license, and both README languages; development Demo files are excluded.
 
-Publishing is manual through the [Publish workflow](https://github.com/creativedswork/dsh-mcp-apps/actions/workflows/publish.yml). The `npm` environment must provide an `NPM_TOKEN` with permission for the `@creative-dswork` scope. The workflow publishes with provenance and creates `v0.2.0` plus the GitHub Release only after npm succeeds.
+Publishing is manual through the [Publish workflow](https://github.com/creativedswork/dsh-uni-editor/actions/workflows/publish.yml). The `npm` environment must provide an `NPM_TOKEN` with permission for the `@creative-dswork` scope. The workflow publishes with provenance and creates the matching version tag and GitHub Release only after npm succeeds.
+
+Versions through `0.2.0` were published as `@creative-dswork/dsh-mcp-apps`. Install `@creative-dswork/dsh-uni-editor` for current releases.

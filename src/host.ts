@@ -185,7 +185,7 @@ class ServerState {
     private readonly resolved: ResolvedConfig,
   ) {
     this.client = new Client(
-      { name: 'dsh-mcp-apps', version: '0.1.0' },
+      { name: 'dsh-uni-editor', version: '0.3.0' },
       {
         capabilities: {
           extensions: {

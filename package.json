@@ -1,9 +1,11 @@
 {
-  "name": "@creative-dswork/dsh-mcp-apps",
-  "version": "0.2.0",
-  "description": "Cordis-hosted MCP Apps support for DeepSeek Harness",
+  "name": "@creative-dswork/dsh-uni-editor",
+  "version": "0.3.0",
+  "description": "Unified Editor runtime for DeepSeek Harness, powered by MCP Apps",
   "keywords": [
     "deepseek",
+    "editor",
+    "dsh-plugin",
     "mcp",
     "mcp-apps",
     "cordis",
@@ -12,12 +14,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/creativedswork/dsh-mcp-apps.git"
+    "url": "git+https://github.com/creativedswork/dsh-uni-editor.git"
   },
   "bugs": {
-    "url": "https://github.com/creativedswork/dsh-mcp-apps/issues"
+    "url": "https://github.com/creativedswork/dsh-uni-editor/issues"
   },
-  "homepage": "https://github.com/creativedswork/dsh-mcp-apps#readme",
+  "homepage": "https://github.com/creativedswork/dsh-uni-editor#readme",
   "type": "module",
   "packageManager": "pnpm@11.7.0",
   "engines": {

@@ -2,7 +2,7 @@
 
 状态：**Phase A 已实现并验收，随 `0.2.0` 交付；Companion Dock 暂缓**
 日期：2026-08-19
-目标版本：`dsh-mcp-apps` 后续版本
+目标版本：`dsh-uni-editor` 后续版本
 关联场景：Three.js Editor 等长时间交互式 MCP App
 
 ## 目标
@@ -38,8 +38,8 @@ AppBridge。
 | MCP App View 由 `tool.call.toolview` 消息行渲染 | App 与产生它的工具结果保持关联 | 历史消息滚出视野后没有固定返回入口 |
 | Host 支持标准 `inline` 和 `fullscreen` | App 可以请求全屏，并在同一 iframe 中切换 | 用户必须先找到原卡片才能点击全屏 |
 | Fullscreen 通过同一行内 wrapper 的 `position: fixed` 实现 | 切换全屏不需要新建 AppBridge | 退出后仍回到原始滚动位置 |
-| Harness 提供 `conversation.session.header.actions` | 插件可增加 Session 级按钮而不替换 Header | 当前 `dsh-mcp-apps` 尚未注册该入口 |
-| Harness 的 `details` 列已由 Conversation Details 占用 | 工具详情具备独立右栏 | `dsh-mcp-apps` 不能覆盖它来实现通用 App Dock |
+| Harness 提供 `conversation.session.header.actions` | 插件可增加 Session 级按钮而不替换 Header | 当前 `dsh-uni-editor` 尚未注册该入口 |
+| Harness 的 `details` 列已由 Conversation Details 占用 | 工具详情具备独立右栏 | `dsh-uni-editor` 不能覆盖它来实现通用 App Dock |
 | Harness 提供 `shell.overlay` | 可增加 frame-wide 浮层 | 浮层会覆盖布局，不能等价于真正的并排 Dock |
 
 因此，`sticky` 工具卡片或覆盖式浮层只能改善表象，不能同时满足 Chat 可用空间、
@@ -182,7 +182,7 @@ Chat 滚动不会触发状态转换。页面刷新和 Session 切换沿用当前
 
 ### 1. Session App Registry
 
-在 `dsh-mcp-apps` Browser bundle 中增加 Session 级 registry：
+在 `dsh-uni-editor` Browser bundle 中增加 Session 级 registry：
 
 ```ts
 interface AppInstanceController {
@@ -233,7 +233,7 @@ App row 保活，不能静默卸载 iframe。
 
 ### 3. Header 入口
 
-`dsh-mcp-apps` 注册：
+`dsh-uni-editor` 注册：
 
 ```text
 conversation.session.header.actions
@@ -262,7 +262,7 @@ conversation.companion
 - 窄屏时把 companion 宽度解析为 0；
 - 保持现有 `details` 工具详情列不变。
 
-`dsh-mcp-apps` 负责注册 Dock chrome 和当前 App surface。它不能替换
+`dsh-uni-editor` 负责注册 Dock chrome 和当前 App surface。它不能替换
 `conversation`、`details` 或整个 `root` slot。
 
 当前实施先交付 Header 入口：
@@ -312,7 +312,7 @@ Dock 不增加新的权限边界：
 
 ## 代码影响
 
-### `dsh-mcp-apps`
+### `dsh-uni-editor`
 
 | 文件/模块 | 修改 |
 |---|---|
@@ -353,7 +353,7 @@ Host context containerDimensions
 
 ### Phase A：Persistent Return Entry
 
-只修改 `dsh-mcp-apps`：
+只修改 `dsh-uni-editor`：
 
 - Session App Registry；
 - `Active App` Header action；
@@ -398,7 +398,7 @@ Phase A 交付；本阶段只继续强化异常路径和资源治理。
 
 ### Future：Companion Dock
 
-先在 Harness 增加通用 companion panel，再由 `dsh-mcp-apps` 接入：
+先在 Harness 增加通用 companion panel，再由 `dsh-uni-editor` 接入：
 
 - desktop pin/unpin；
 - resize 和 concession；

@@ -1,13 +1,17 @@
-# DSH MCP Apps
+# DSH Uni Editor
 
 [English](README.md) | 简体中文
 
-[![CI](https://github.com/creativedswork/dsh-mcp-apps/actions/workflows/ci.yml/badge.svg)](https://github.com/creativedswork/dsh-mcp-apps/actions/workflows/ci.yml)
-[![npm](https://img.shields.io/npm/v/@creative-dswork/dsh-mcp-apps.svg)](https://www.npmjs.com/package/@creative-dswork/dsh-mcp-apps)
-[![GitHub release](https://img.shields.io/github/v/release/creativedswork/dsh-mcp-apps)](https://github.com/creativedswork/dsh-mcp-apps/releases)
-[![license](https://img.shields.io/npm/l/@creative-dswork/dsh-mcp-apps.svg)](LICENSE)
+[![CI](https://github.com/creativedswork/dsh-uni-editor/actions/workflows/ci.yml/badge.svg)](https://github.com/creativedswork/dsh-uni-editor/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/@creative-dswork/dsh-uni-editor.svg)](https://www.npmjs.com/package/@creative-dswork/dsh-uni-editor)
+[![GitHub release](https://img.shields.io/github/v/release/creativedswork/dsh-uni-editor)](https://github.com/creativedswork/dsh-uni-editor/releases)
+[![license](https://img.shields.io/npm/l/@creative-dswork/dsh-uni-editor.svg)](LICENSE)
 
-这是一个 Cordis 插件包，用于在 DeepSeek Harness Web UI 中运行稳定规范的 MCP Apps。一个 npm 包同时提供 Host 插件、Browser bundle，以及用于启用两者的 `dsh.bundle` patch。
+**所有 Editor，一个 DSH Editor。**
+
+DSH Uni Editor 将现有 Editor 接入 DeepSeek Harness Agent Chat。Editor 保留自己的 UI、数据模型和领域工具；DSH 统一入口、当前 Session 上下文，以及人工编辑与 Agent 之间可验证的交接。
+
+它是一个基于稳定版 MCP Apps 的 Cordis 插件包。一个 npm 包同时提供 Host 插件、Browser bundle，以及用于启用两者的 `dsh.bundle` patch。
 
 Host 管理 MCP 连接，通过 Harness 注册模型可见工具，不把 app-only 工具暴露给模型，并通过不同源的 Sandbox Proxy 运行不受信任的 View。整个方案不需要修改 Agent Loop，也不需要外部 MCP 代理。
 
@@ -22,7 +26,7 @@ Host 管理 MCP 连接，通过 Harness 注册模型可见工具，不把 app-on
 将 npm 包安装到 Web profile：
 
 ```sh
-dsh plugin --profile web add @creative-dswork/dsh-mcp-apps
+dsh plugin --profile web add @creative-dswork/dsh-uni-editor
 ```
 
 安装后 bundle 会自动启用。在 `$DSH_HOME/profiles/web/cordis.patch.yml` 中配置 `mcp-apps`：
@@ -139,4 +143,6 @@ dsh --profile web --dump-config
 
 `prepack` 会执行类型检查、生产构建和包测试。npm tarball 包含 Host 入口、Browser bundle、类型声明、bundle patch、许可证和中英文 README，不包含开发 Demo 文件。
 
-发布通过 [Publish workflow](https://github.com/creativedswork/dsh-mcp-apps/actions/workflows/publish.yml) 手动触发。`npm` environment 必须提供有权发布 `@creative-dswork` scope 的 `NPM_TOKEN`。workflow 会携带 provenance 发布 npm 包；npm 发布成功后，再创建 `v0.2.0` tag 和 GitHub Release。
+发布通过 [Publish workflow](https://github.com/creativedswork/dsh-uni-editor/actions/workflows/publish.yml) 手动触发。`npm` environment 必须提供有权发布 `@creative-dswork` scope 的 `NPM_TOKEN`。workflow 会携带 provenance 发布 npm 包；npm 发布成功后，再创建对应版本的 tag 和 GitHub Release。
+
+`0.2.0` 及更早版本以 `@creative-dswork/dsh-mcp-apps` 发布。当前版本请安装 `@creative-dswork/dsh-uni-editor`。
