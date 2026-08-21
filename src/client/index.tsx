@@ -24,6 +24,7 @@ import {
   type AppInstanceController,
   type AppSurface,
 } from './app-registry.js'
+import { currentViewId } from './view-binding.js'
 
 const API_PREFIX = '/api/mcp-apps'
 const CATALOG_REFRESH_MS = 5_000
@@ -318,7 +319,8 @@ function McpAppRow({
     setReady(false)
 
     const run = async (): Promise<void> => {
-      const view = await api<McpAppView>('view', { viewId: meta.viewId })
+      const viewId = currentViewId(meta, descriptor)
+      const view = await api<McpAppView>('view', { viewId })
       if (disposed) return
       const sandboxOrigin = loopbackSandboxOrigin(descriptor.sandboxOrigin)
       const sandboxReady = waitForSandbox(iframe, sandboxOrigin)
@@ -345,7 +347,7 @@ function McpAppRow({
       )
       bridgeRef.current = bridge
       bridge.oncalltool = (params, extra) => api<CallToolResult>('tool', {
-        viewId: meta.viewId,
+        viewId,
         name: params.name,
         arguments: params.arguments ?? {},
       }).then(result => {
@@ -353,7 +355,7 @@ function McpAppRow({
         return result
       })
       bridge.onreadresource = (params, extra) => api<ReadResourceResult>('resource', {
-        viewId: meta.viewId,
+        viewId,
         uri: params.uri,
       }).then(result => {
         extra.signal.throwIfAborted()
