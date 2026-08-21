@@ -185,7 +185,7 @@ class ServerState {
     private readonly resolved: ResolvedConfig,
   ) {
     this.client = new Client(
-      { name: 'dsh-uni-editor', version: '0.3.0' },
+      { name: 'dsh-uni-editor', version: '0.3.1' },
       {
         capabilities: {
           extensions: {
