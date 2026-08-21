@@ -15,11 +15,11 @@ DSH Uni Editor 将现有 Editor 接入 DeepSeek Harness Agent Chat。Editor 保�
 
 Host 管理 MCP 连接，通过 Harness 注册模型可见工具，不把 app-only 工具暴露给模型，并通过不同源的 Sandbox Proxy 运行不受信任的 View。整个方案不需要修改 Agent Loop，也不需要外部 MCP 代理。
 
-<a href="https://youtu.be/N4spKNrK1gg">
-  <img width="900" alt="观看 DSH Chat UI 与 Three.js Editor MCP App 视频演示" src="https://i.ytimg.com/vi/N4spKNrK1gg/maxresdefault.jpg">
+<a href="https://www.youtube.com/watch?v=KkvLgN2GeTI">
+  <img width="900" alt="观看 DSH Chat UI 与 Three.js Editor MCP App 视频演示" src="https://i.ytimg.com/vi/KkvLgN2GeTI/maxresdefault.jpg">
 </a>
 
-[观看视频演示](https://youtu.be/N4spKNrK1gg)，了解 [`threejs-editor-mcp`](https://github.com/creativedswork/threejs-editor-mcp) 如何直接运行在 DSH Chat UI 中。Editor 始终可以从 Session Header 返回；inline 与 fullscreen 切换不会重建 iframe，并可通过 **Locate in Chat** 返回产生该 App 的工具消息。
+[观看视频演示](https://www.youtube.com/watch?v=KkvLgN2GeTI)，了解 [`threejs-editor-mcp`](https://github.com/creativedswork/threejs-editor-mcp) 如何直接运行在 DSH Chat UI 中。Editor 始终可以从 Session Header 返回；inline 与 fullscreen 切换不会重建 iframe，并可通过 **Locate in Chat** 返回产生该 App 的工具消息。
 
 ## 安装
 

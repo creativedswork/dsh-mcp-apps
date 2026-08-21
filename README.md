@@ -15,11 +15,11 @@ The runtime is a Cordis plugin bundle powered by stable-spec MCP Apps. One npm p
 
 The Host owns its MCP connections, exposes model-visible tools through Harness, keeps app-only tools out of the model registry, and serves untrusted Views through a different-origin Sandbox Proxy. No agent-loop change or external MCP proxy is required.
 
-<a href="https://youtu.be/N4spKNrK1gg">
-  <img width="900" alt="Watch the DSH Chat UI and Three.js Editor MCP App video demo" src="https://i.ytimg.com/vi/N4spKNrK1gg/maxresdefault.jpg">
+<a href="https://www.youtube.com/watch?v=KkvLgN2GeTI">
+  <img width="900" alt="Watch the DSH Chat UI and Three.js Editor MCP App video demo" src="https://i.ytimg.com/vi/KkvLgN2GeTI/maxresdefault.jpg">
 </a>
 
-[Watch the video demo](https://youtu.be/N4spKNrK1gg) to see [`threejs-editor-mcp`](https://github.com/creativedswork/threejs-editor-mcp) running directly inside DSH Chat UI. The Editor stays reachable from the Session Header, can move between inline and fullscreen without recreating its iframe, and can return to its originating tool message with **Locate in Chat**.
+[Watch the video demo](https://www.youtube.com/watch?v=KkvLgN2GeTI) to see [`threejs-editor-mcp`](https://github.com/creativedswork/threejs-editor-mcp) running directly inside DSH Chat UI. The Editor stays reachable from the Session Header, can move between inline and fullscreen without recreating its iframe, and can return to its originating tool message with **Locate in Chat**.
 
 ## Install
 
